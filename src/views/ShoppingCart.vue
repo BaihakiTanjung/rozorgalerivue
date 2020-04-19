@@ -35,29 +35,15 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
+                      <tr v-for="keranjang in keranjangUser" :key="keranjang.id">
                         <td class="cart-pic first-row">
-                          <img src="img/cart-page/product-1.jpg" />
+                          <img class="img-cart" :src="keranjang.photo" />
                         </td>
                         <td class="cart-title first-row text-center">
-                          <h5>Pure Pineapple</h5>
+                          <h5>{{keranjang.name}}</h5>
                         </td>
-                        <td class="p-price first-row">$60.00</td>
-                        <td class="delete-item">
-                          <a href="#">
-                            <i class="material-icons">close</i>
-                          </a>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="cart-pic first-row">
-                          <img src="img/cart-page/product-1.jpg" />
-                        </td>
-                        <td class="cart-title first-row text-center">
-                          <h5>Pure Pineapple</h5>
-                        </td>
-                        <td class="p-price first-row">$60.00</td>
-                        <td class="delete-item">
+                        <td class="p-price first-row">{{keranjang.price}}</td>
+                        <td @click="removeItem(keranjang.index)" class="delete-item">
                           <a href="#">
                             <i class="material-icons">close</i>
                           </a>
@@ -79,6 +65,7 @@
                         id="namaLengkap"
                         aria-describedby="namaHelp"
                         placeholder="Masukan Nama"
+                        v-model="customerInfo.name"
                       />
                     </div>
                     <div class="form-group">
@@ -89,6 +76,7 @@
                         id="emailAddress"
                         aria-describedby="emailHelp"
                         placeholder="Masukan Email"
+                        v-model="customerInfo.email"
                       />
                     </div>
                     <div class="form-group">
@@ -99,11 +87,17 @@
                         id="noHP"
                         aria-describedby="noHPHelp"
                         placeholder="Masukan No. HP"
+                        v-model="customerInfo.number"
                       />
                     </div>
                     <div class="form-group">
                       <label for="alamatLengkap">Alamat Lengkap</label>
-                      <textarea class="form-control" id="alamatLengkap" rows="3"></textarea>
+                      <textarea
+                        class="form-control"
+                        id="alamatLengkap"
+                        rows="3"
+                        v-model="customerInfo.address"
+                      ></textarea>
                     </div>
                   </form>
                 </div>
@@ -121,15 +115,15 @@
                     </li>
                     <li class="subtotal mt-3">
                       Subtotal
-                      <span>$240.00</span>
+                      <span>${{totalHarga}}.00</span>
                     </li>
                     <li class="subtotal mt-3">
                       Pajak
-                      <span>10%</span>
+                      <span>10% : {{ditambahPajak}}</span>
                     </li>
                     <li class="subtotal mt-3">
                       Total Biaya
-                      <span>$440.00</span>
+                      <span>${{totalBiaya}}.00</span>
                     </li>
                     <li class="subtotal mt-3">
                       Bank Transfer
@@ -144,9 +138,9 @@
                       <span>Shayna</span>
                     </li>
                   </ul>
-                  <router-link to="/success">
-                    <a href="#" class="proceed-btn">I ALREADY PAID</a>
-                  </router-link>
+                  <!-- <router-link to="/success"> -->
+                  <a href="#" @click="checkout" class="proceed-btn">I ALREADY PAID</a>
+                  <!-- </router-link> -->
                 </div>
               </div>
             </div>
@@ -164,11 +158,69 @@
 // import HelloWorld from '@/components/HelloWorld.vue'
 import Header from "@/components/Header.vue";
 import Footer from "@/components/Footer.vue";
+import axios from "axios";
 
 export default {
   name: "ShoppingCart",
   data() {
-    return {};
+    return {
+      keranjangUser: [],
+      customerInfo: {
+        name: "",
+        email: "",
+        address: "",
+        number: ""
+      }
+    };
+  },
+  methods: {
+    removeItem(index) {
+      this.keranjangUser.splice(index, 1);
+      const parsed = JSON.stringify(this.keranjangUser);
+      localStorage.setItem("keranjangUser", parsed);
+    },
+    checkout() {
+      let productIds = this.keranjangUser.map(function(product) {
+        return product.id;
+      });
+
+      let checkoutData = {
+        name: this.customerInfo.name,
+        email: this.customerInfo.email,
+        number: this.customerInfo.number,
+        address: this.customerInfo.address,
+        transaction_total: this.totalBiaya,
+        transaction_status: "PENDING",
+        transaction_details: productIds
+      };
+
+      axios
+        .post("http://localhost:8002/api/checkout", checkoutData)
+        .then(() => this.$router.push("success"))
+        .catch(err => console.log(err));
+    }
+  },
+  computed: {
+    totalHarga() {
+      return this.keranjangUser.reduce(function(items, data) {
+        return items + data.price;
+      }, 0);
+    },
+    ditambahPajak() {
+      return (this.totalHarga * 10) / 100;
+    },
+    totalBiaya() {
+      return Math.floor(this.totalHarga + this.ditambahPajak);
+    }
+  },
+  mounted() {
+    if (localStorage.getItem("keranjangUser")) {
+      try {
+        this.keranjangUser = JSON.parse(localStorage.getItem("keranjangUser"));
+      } catch (error) {
+        localStorage.removeItem("keranjangUser");
+      }
+    }
   },
   components: {
     // HelloWorld
@@ -177,3 +229,9 @@ export default {
   }
 };
 </script>
+<style>
+.img-cart {
+  width: 100px;
+  height: 100px;
+}
+</style>

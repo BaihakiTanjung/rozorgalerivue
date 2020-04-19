@@ -11,12 +11,15 @@
           </div>
         </div>
         <div class="row">
-          <div class="col-lg-3 col-sm-6">
+          <div v-for="ItemProduct in products" :key="ItemProduct.id" class="col-lg-3 col-sm-6">
             <div class="product-item">
               <div class="pi-pic">
-                <img src="img/products/women-1.jpg" alt />
+                <img :src="ItemProduct.galleries[0].photo" alt />
                 <ul>
-                  <li class="w-icon active">
+                  <li
+                    @click="saveKeranjang(ItemProduct.id , ItemProduct.name, ItemProduct.price, ItemProduct.galleries[0].photo)"
+                    class="w-icon active"
+                  >
                     <a href="#">
                       <i class="icon_bag_alt"></i>
                     </a>
@@ -27,18 +30,18 @@
                 </ul>
               </div>
               <div class="pi-text">
-                <div class="catagory-name">Coat</div>
+                <div class="catagory-name">{{ItemProduct.type}}</div>
                 <a href="#">
-                  <h5>Pure Pineapple</h5>
+                  <h5>{{ItemProduct.name}}</h5>
                 </a>
                 <div class="product-price">
-                  $14.00
+                  ${{ItemProduct.price}}
                   <span>$35.00</span>
                 </div>
               </div>
             </div>
           </div>
-          <div class="col-lg-3 col-sm-6">
+          <!-- <div class="col-lg-3 col-sm-6">
             <div class="product-item">
               <div class="pi-pic">
                 <img src="img/products/women-2.jpg" alt />
@@ -109,7 +112,7 @@
                 <div class="product-price">$34.00</div>
               </div>
             </div>
-          </div>
+          </div>-->
         </div>
       </div>
     </div>
@@ -117,7 +120,36 @@
   </div>
 </template>
 <script>
+import axios from "axios";
+
 export default {
-  name: "RelatedProducts"
+  name: "RelatedProducts",
+  data() {
+    return {
+      products: []
+    };
+  },
+  methods: {
+    saveKeranjang(idProduct, nameProduct, priceProduct, photoProduct) {
+      let productStored = {
+        id: idProduct,
+        name: nameProduct,
+        price: priceProduct,
+        photo: photoProduct
+      };
+
+      this.keranjangUser.push(productStored);
+      const parsed = JSON.stringify(this.keranjangUser);
+      localStorage.setItem("keranjangUser", parsed);
+
+      window.location.reload();
+    }
+  },
+  mounted() {
+    axios
+      .get("http://localhost:8002/api/products?limit=10&type=cars")
+      .then(res => (this.products = res.data.data.data))
+      .catch(err => console.log(err));
+  }
 };
 </script>
